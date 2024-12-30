@@ -1,0 +1,106 @@
+<html>
+
+<body>
+    <main>
+        <div>
+            <div>Host</div>
+            <div>Hostname: {{.Hostname}}</div>
+            <div>Os: {{.Os}}</div>
+            <div>Uptime: {{.Uptime}}</div>
+        </div>
+        <div>
+            <div>Memory</div>
+            <div>{{.UsedMemory}}GB / {{.TotalMemory}}GB ({{.PercentageMemory}}%)</div>
+        </div>
+        <div>
+            <div>Disk</div>
+            <div>{{.UsedDisk}}GB / {{.TotalDisk}}GB ({{.PercentageDisk}}%)</div>
+        </div>
+        <div>
+            <div>CPU</div>
+            <div class="cpu-section">
+                {{range $i, $val := .Cpus}}
+                <div class="cpu-item">
+                    <div>{{inc $i}}</div>
+                    <div class="cpu-item-usage">
+                        <div style="width: {{$val}}%; background-color: {{cpuColor $val}};"></div>
+                    </div>
+                    <div>{{$val}}%</div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        <div>
+            <div>Temperature</div>
+            <div class="temperature-section">
+                {{range $i, $val := .Temps}}
+                <div class="temperature-item">
+                    <div>{{inc $i}}</div>
+                    <div>{{$val.SensorKey}}</div>
+                    <div>{{$val.Temperature}}°C</div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>
+
+<style>
+    body {
+        background-color: beige;
+        padding: 1rem;
+        width: 700px;
+        margin: 0 auto;
+    }
+
+    main {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        border: solid 1px black;
+        padding: 1rem;
+    }
+
+    .cpu-section {
+        display: flex;
+        gap: 0.5rem;
+        flex-direction: column;
+    }
+
+    .cpu-item {
+        display: grid;
+        grid-template-columns: 10% 80% 10%;
+        align-items: center;
+    }
+
+    .cpu-item div:last-child {
+        text-align: right;
+    }
+
+    .cpu-item-usage {
+        width: 200px;
+        height: 24px;
+        border: solid 1px black;
+    }
+
+    .cpu-item-usage div {
+        height: 100%;
+    }
+
+    .temperature-section {
+        display: flex;
+        gap: 0.5rem;
+        flex-direction: column;
+    }
+
+    .temperature-item {
+        display: grid;
+        grid-template-columns: 10% 80% 10%;
+    }
+
+    .temperature-item div:last-child {
+        text-align: right;
+    }
+</style>
