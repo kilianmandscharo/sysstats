@@ -1,0 +1,40 @@
+<div class="section">
+    <div>Host</div>
+    <div>Hostname: {{.Hostname}}</div>
+    <div>Os: {{.Os}}</div>
+    <div>Uptime: {{.Uptime}}</div>
+</div>
+<div class="section">
+    <div>Memory</div>
+    <div>{{.UsedMemory}}GB / {{.TotalMemory}}GB ({{.PercentageMemory}}%)</div>
+</div>
+<div class="section">
+    <div>Disk</div>
+    <div>{{.UsedDisk}}GB / {{.TotalDisk}}GB ({{.PercentageDisk}}%)</div>
+</div>
+<div class="section">
+    <div>CPU</div>
+    <div class="cpu-section">
+        {{range $i, $val := .Cpus}}
+        <div class="cpu-item">
+            <div>{{inc $i}}</div>
+            <div class="cpu-item-usage">
+                <div style="width: {{$val}}%; background-color: {{cpuColor $val}};"></div>
+            </div>
+            <div style="color: {{cpuColor $val}};">{{$val}}%</div>
+        </div>
+        {{end}}
+    </div>
+</div>
+<div class="section">
+    <div>Temperature</div>
+    <div class="temperature-section">
+        {{range $i, $val := .Temps}}
+        <div class="temperature-item">
+            <div>{{inc $i}}</div>
+            <div>{{$val.SensorKey}}</div>
+            <div style="color: {{temperatureColor $val.Temperature}};">{{$val.Temperature}}°C</div>
+        </div>
+        {{end}}
+    </div>
+</div>

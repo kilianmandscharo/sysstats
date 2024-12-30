@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"html/template"
@@ -8,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -42,7 +44,10 @@ func formatDuration(seconds uint64) string {
 }
 
 //go:embed index.html
-var html string
+var indexHtml string
+
+//go:embed stats.html
+var statsHtml string
 
 type Stats struct {
 	TotalDisk        float64
@@ -58,33 +63,16 @@ type Stats struct {
 	Temps            []sensors.TemperatureStat
 }
 
-func main() {
+func getStats() *Stats {
 	v := unwrapError(mem.VirtualMemory())
 	cpus := unwrapError(cpu.Percent(time.Second*1, true))
 	for i := range len(cpus) {
 		cpus[i] = round(cpus[i])
 	}
-
 	temps := unwrapError(sensors.SensorsTemperatures())
 	hostInfo := unwrapError(host.Info())
 	disk := unwrapError(disk.Usage("/"))
-
-	funcMap := template.FuncMap{
-		"inc": func(n int) int {
-			return n + 1
-		},
-		"cpuColor": func(n float64) string {
-			if n < 50 {
-				return "green"
-			}
-			if n < 80 {
-				return "orange"
-			}
-			return "red"
-		},
-	}
-
-	stats := Stats{
+	return &Stats{
 		TotalDisk:        toGb(disk.Total),
 		UsedDisk:         toGb(disk.Used),
 		PercentageDisk:   round(disk.UsedPercent),
@@ -97,10 +85,52 @@ func main() {
 		Os:               hostInfo.OS,
 		Temps:            temps,
 	}
+}
+
+func main() {
+	funcMap := template.FuncMap{
+		"inc": func(n int) int {
+			return n + 1
+		},
+		"cpuColor": func(n float64) string {
+			if n <= 50 {
+				return "green"
+			}
+			if n <= 90 {
+				return "orange"
+			}
+			return "red"
+		},
+		"temperatureColor": func(n float64) string {
+			if n <= 50 {
+				return "green"
+			}
+			if n <= 90 {
+				return "orange"
+			}
+			return "red"
+		},
+	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		t := template.Must(template.New("index").Funcs(funcMap).Parse(html))
-		t.Execute(w, stats)
+		t := template.Must(template.New("index").Parse(indexHtml))
+		t.Execute(w, "")
+	})
+
+	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		for {
+			t := template.Must(template.New("stats").Funcs(funcMap).Parse(statsHtml))
+			var buf bytes.Buffer
+			t.Execute(&buf, *getStats())
+			fmt.Fprintf(w, "data: %s\n\n", strings.ReplaceAll(buf.String(), "\n", ""))
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			time.Sleep(1 * time.Second)
+		}
 	})
 
 	log.Println("Listening on :8080...")
